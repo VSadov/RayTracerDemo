@@ -19,7 +19,7 @@ namespace RayTracerDemo
             this.setPixel = setPixel;
         }
 
-        private double TestRay(Ray ray, Scene scene)
+        private double TestRay(in Ray ray, Scene scene)
         {
             double nearestDist = double.PositiveInfinity;
 
@@ -35,7 +35,7 @@ namespace RayTracerDemo
             return nearestDist;
         }
 
-        private Color TraceRay(Ray ray, Scene scene, int depth)
+        private Color TraceRay(in Ray ray, Scene scene, int depth)
         {
             Intersection nearestIntersection = default(Intersection);
             double nearestDist = double.PositiveInfinity;
@@ -93,7 +93,7 @@ namespace RayTracerDemo
             return TraceRay(new Ray(pos, rd), scene, depth + 1) * thing.Surface.Reflect(pos);
         }
 
-        private Color Shade(Intersection isect, Scene scene, int depth)
+        private Color Shade(in Intersection isect, Scene scene, int depth)
         {
             var d = isect.Ray.Direction;
             var pos = d * isect.Dist + isect.Ray.Start;
@@ -237,24 +237,24 @@ namespace RayTracerDemo
             Z = double.Parse(nums[2]);
         }
 
-        public static Vector operator *(Vector v, double n) => new Vector(v.X * n, v.Y * n, v.Z * n);
+        public static Vector operator *(in Vector v, double n) => new Vector(v.X * n, v.Y * n, v.Z * n);
 
-        public static Vector operator -(Vector v1, Vector v2) => new Vector(v1.X - v2.X, v1.Y - v2.Y, v1.Z - v2.Z);
+        public static Vector operator -(in Vector v1, in Vector v2) => new Vector(v1.X - v2.X, v1.Y - v2.Y, v1.Z - v2.Z);
 
-        public static Vector operator +(Vector v1, Vector v2) => new Vector(v1.X + v2.X, v1.Y + v2.Y, v1.Z + v2.Z);
+        public static Vector operator +(in Vector v1, in Vector v2) => new Vector(v1.X + v2.X, v1.Y + v2.Y, v1.Z + v2.Z);
 
-        public static double Dot(Vector v1, Vector v2) => (v1.X * v2.X) + (v1.Y * v2.Y) + (v1.Z * v2.Z);
+        public static double Dot(in Vector v1, in Vector v2) => (v1.X * v2.X) + (v1.Y * v2.Y) + (v1.Z * v2.Z);
 
-        public static double Mag(Vector v) => Math.Sqrt(Dot(v, v));
+        public static double Mag(in Vector v) => Math.Sqrt(Dot(v, v));
 
-        public static Vector Cross(Vector v1, Vector v2)
+        public static Vector Cross(in Vector v1, in Vector v2)
         {
             return new Vector(((v1.Y * v2.Z) - (v1.Z * v2.Y)),
                               ((v1.Z * v2.X) - (v1.X * v2.Z)),
                               ((v1.X * v2.Y) - (v1.Y * v2.X)));
         }
 
-        public static Vector Norm(Vector v)
+        public static Vector Norm(in Vector v)
         {
             double mag = Mag(v);
 
@@ -263,7 +263,7 @@ namespace RayTracerDemo
                 default(Vector);
         }
 
-        public static bool Equals(Vector v1, Vector v2)
+        public static bool Equals(in Vector v1, in Vector v2)
         {
             return (v1.X == v2.X) && (v1.Y == v2.Y) && (v1.Z == v2.Z);
         }
@@ -288,13 +288,13 @@ namespace RayTracerDemo
             B = double.Parse(nums[2]);
         }
 
-        public static Color operator *(Color v, double n) => new Color(n * v.R, n * v.G, n * v.B);
+        public static Color operator *(in Color v, double n) => new Color(n * v.R, n * v.G, n * v.B);
 
-        public static Color operator *(Color v1, Color v2) => new Color(v1.R * v2.R, v1.G * v2.G, v1.B * v2.B);
+        public static Color operator *(in Color v1, in Color v2) => new Color(v1.R * v2.R, v1.G * v2.G, v1.B * v2.B);
 
-        public static Color operator +(Color v1, Color v2) => new Color(v1.R + v2.R, v1.G + v2.G, v1.B + v2.B);
+        public static Color operator +(in Color v1, in Color v2) => new Color(v1.R + v2.R, v1.G + v2.G, v1.B + v2.B);
 
-        public static Color operator -(Color v1, Color v2) => new Color(v1.R - v2.R, v1.G - v2.G, v1.B - v2.B);
+        public static Color operator -(in Color v1, in Color v2) => new Color(v1.R - v2.R, v1.G - v2.G, v1.B - v2.B);
 
         public double Legalize(double d)
         {
@@ -418,8 +418,8 @@ namespace RayTracerDemo
             this.Surface = surface;
         }
 
-        public abstract double IntersectDistance(Ray ray);
-        public abstract Vector Normal(Vector pos);
+        public abstract double IntersectDistance(in Ray ray);
+        public abstract Vector Normal(in Vector pos);
     }
 
     class Sphere : SceneObject
@@ -434,7 +434,7 @@ namespace RayTracerDemo
             this.RadiusSq = radius * radius;
         }
 
-        public override double IntersectDistance(Ray ray)
+        public override double IntersectDistance(in Ray ray)
         {
             Vector eo = Center - ray.Start;
             double v = Vector.Dot(eo, ray.Direction);
@@ -451,7 +451,7 @@ namespace RayTracerDemo
             return double.PositiveInfinity;
         }
 
-        public override Vector Normal(Vector pos)
+        public override Vector Normal(in Vector pos)
         {
             return Vector.Norm(pos - Center);
         }
@@ -469,7 +469,7 @@ namespace RayTracerDemo
             this.Offset = offset;
         }
 
-        public override double IntersectDistance(Ray ray)
+        public override double IntersectDistance(in Ray ray)
         {
             double denom = Vector.Dot(Norm, ray.Direction);
 
@@ -482,7 +482,7 @@ namespace RayTracerDemo
             return dist;
         }
 
-        public override Vector Normal(Vector pos)
+        public override Vector Normal(in Vector pos)
         {
             return Norm;
         }
