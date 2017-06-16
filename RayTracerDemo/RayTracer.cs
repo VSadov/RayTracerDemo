@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -10,13 +11,38 @@ namespace RayTracerDemo
         private readonly int screenHeight;
         private const int MaxDepth = 5;
 
-        public Action<int, int, RGB> setPixel;
-
-        public RayTracer(int screenWidth, int screenHeight, Action<int, int, RGB> setPixel)
+        public RayTracer(int screenWidth, int screenHeight)
         {
             this.screenWidth = screenWidth;
             this.screenHeight = screenHeight;
-            this.setPixel = setPixel;
+        }
+
+        static void SetPixel(Span<byte> pixel, in Color c)
+        {
+            // pixel[0]  unused
+            pixel[1] = c.DrawingR;
+            pixel[2] = c.DrawingG;
+            pixel[3] = c.DrawingB;
+        }
+
+        internal void Render(Scene scene, OwnedNativeBuffer frameBuffer, int stride)
+        {
+            void DrawLine(int y)
+            {
+                Span<byte> scanLine = frameBuffer.AsSpan(y * stride, stride);
+
+                for (int x = 0; x < screenWidth; x++)
+                {
+                    var ray = new Ray(scene.Camera.Pos, GetPoint(x, y, scene.Camera));
+                    Color color = TraceRay(ray, scene, 0);
+
+                    SetPixel(scanLine.Slice(x * 4, 4), color);
+                }
+            }
+
+            //for (int y = 0; y < screenHeight; y++) DrawLine(y);
+
+            Parallel.For(0, screenHeight, (y) => DrawLine(y));
         }
 
         private double TestRay(in Ray ray, Scene scene)
@@ -124,23 +150,6 @@ namespace RayTracerDemo
         private Vector GetPoint(double x, double y, Camera camera)
         {
             return Vector.Norm(camera.Forward + camera.Right * RecenterX(x) + camera.Up * RecenterY(y));
-        }
-
-        internal void Render(Scene scene)
-        {
-            void DrawLine(int y)
-            {
-                for (int x = 0; x < screenWidth; x++)
-                {
-                    var ray = new Ray(scene.Camera.Pos, GetPoint(x, y, scene.Camera));
-                    Color color = TraceRay(ray, scene, 0);
-                    setPixel(x, y, color.ToDrawingColor());
-                }
-            }
-
-            for (int y = 0; y < screenHeight; y++) DrawLine(y);
-
-            // Parallel.For(0, screenHeight, (y) => DrawLine(y));
         }
 
         internal Scene DefaultScene(double angle) =>
@@ -269,7 +278,7 @@ namespace RayTracerDemo
         }
     }
 
-    public struct Color
+    public readonly struct Color
     {
         public static readonly Color Background = default(Color);
         public static readonly Color DefaultColor = default(Color);
@@ -296,15 +305,14 @@ namespace RayTracerDemo
 
         public static Color operator -(in Color v1, in Color v2) => new Color(v1.R - v2.R, v1.G - v2.G, v1.B - v2.B);
 
-        public double Legalize(double d)
+        private static double Legalize(double d)
         {
             return d > 1 ? 1 : d;
         }
 
-        internal RGB ToDrawingColor()
-        {
-            return new RGB((byte)(Legalize(R) * 255), (byte)(Legalize(G) * 255), (byte)(Legalize(B) * 255));
-        }
+        public byte DrawingR => (byte)(Legalize(R) * 255);
+        public byte DrawingG => (byte)(Legalize(G) * 255);
+        public byte DrawingB => (byte)(Legalize(B) * 255);
     }
 
     struct Ray
@@ -495,17 +503,17 @@ namespace RayTracerDemo
         public Camera Camera;
     }
 
-    public struct RGB
-    {
-        public readonly byte R;
-        public readonly byte G;
-        public readonly byte B;
+    //public struct RGB
+    //{
+    //    public readonly byte R;
+    //    public readonly byte G;
+    //    public readonly byte B;
 
-        public RGB(byte R, byte G, byte B)
-        {
-            this.R = R;
-            this.G = G;
-            this.B = B;
-        }
-    }
+    //    public RGB(byte R, byte G, byte B)
+    //    {
+    //        this.R = R;
+    //        this.G = G;
+    //        this.B = B;
+    //    }
+    //}
 }

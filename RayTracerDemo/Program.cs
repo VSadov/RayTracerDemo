@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Collections.Generic;
+using System.Buffers;
 
 namespace RayTracerDemo
 {
@@ -49,36 +50,13 @@ namespace RayTracerDemo
             app.Run();
         }
 
-        // The DrawPixel method updates the WriteableBitmap by using
-        // unsafe code to write a pixel into the back buffer.
-        static void DrawPixel(IntPtr pBackBuffer, int backBufferStride, int x, int y, RGB c)
-        {
-            unsafe
-            {
-                // Find the address of the pixel to draw.
-                pBackBuffer += y * backBufferStride;
-                pBackBuffer += x * 4;
-
-                // Compute the pixel's color.
-                int color_data = c.R << 16; // R
-                color_data |= c.G << 8;   // G
-                color_data |= c.B << 0;   // B
-
-                // Assign the color data to the pixel.
-                *((int*)pBackBuffer) = color_data;
-            }
-        }
-
         static void RenderLoop()
         {
-            IntPtr pBackBuffer = default(IntPtr);
+            IntPtr pBackBuffer = default;
             int backBufferStride = 0;
+            int pixelHeight = 0;
 
-
-            RayTracer rayTracer = new RayTracer(600, 600, (int x, int y, RGB color) =>
-            {
-                DrawPixel(pBackBuffer, backBufferStride, x, y, color);
-            });
+            RayTracer rayTracer = new RayTracer(600, 600);
 
             for (;;)
             {
@@ -92,11 +70,16 @@ namespace RayTracerDemo
                         writeableBitmap.Lock();
                         pBackBuffer = writeableBitmap.BackBuffer;
                         backBufferStride = writeableBitmap.BackBufferStride;
+                        pixelHeight = writeableBitmap.PixelHeight;
                     });
 
                     var sw = System.Diagnostics.Stopwatch.StartNew();
 
-                    rayTracer.Render(rayTracer.DefaultScene(x));
+                    using (var frameBuffer = new NativeBuffer(backBufferStride * pixelHeight, pBackBuffer))
+                    {
+                        var scene = rayTracer.DefaultScene(x);
+                        rayTracer.Render(scene, frameBuffer, backBufferStride);
+                    }
 
                     sw.Stop();
                     ReportTime(sw.ElapsedMilliseconds);
