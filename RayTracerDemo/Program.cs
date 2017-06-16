@@ -75,10 +75,11 @@ namespace RayTracerDemo
 
                     var sw = System.Diagnostics.Stopwatch.StartNew();
 
+                    var scene = rayTracer.DefaultScene(x);
+
                     using (var frameBuffer = new NativeBuffer(backBufferStride * pixelHeight, pBackBuffer))
                     {
-                        var scene = rayTracer.DefaultScene(x);
-                        rayTracer.Render(scene, frameBuffer, backBufferStride);
+                        rayTracer.Render(frameBuffer, backBufferStride, scene);
                     }
 
                     sw.Stop();

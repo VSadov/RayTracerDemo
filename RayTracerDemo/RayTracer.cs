@@ -17,11 +17,11 @@ namespace RayTracerDemo
             this.screenHeight = screenHeight;
         }
 
-        internal void Render(Scene scene, OwnedNativeBuffer frameBuffer, int stride)
+        internal void Render(NativeBuffer frameBuffer, int stride, Scene scene)
         {
-            void DrawLine(int y)
+            void DrawLine(int y, Span<byte> frame)
             {
-                Span<byte> line = frameBuffer.AsSpan(y * stride, stride);
+                Span<byte> line = frame.Slice(y * stride, stride);
 
                 for (int x = 0; x < screenWidth; x++)
                 {
@@ -33,9 +33,9 @@ namespace RayTracerDemo
                 }
             }
 
-            for (int y = 0; y < screenHeight; y++) DrawLine(y);
+            for (int y = 0; y < screenHeight; y++) DrawLine(y, frameBuffer.AsSpan());
 
-            //Parallel.For(0, screenHeight, (y) => DrawLine(y);
+            //Parallel.For(0, screenHeight, (y) => DrawLine(y, frameBuffer.AsSpan());
         }
 
         private double TestRay(in Ray ray, Scene scene)
@@ -518,10 +518,7 @@ namespace RayTracerDemo
         public static PixelBGR GetPixelAt(this Span<byte> line, int x)
         {
             // slice a 3-byte chunk with pixel data
-            Span<byte> data = line.Slice(x * 3, 3);
-
-            // make a pixel
-            return new PixelBGR(data);
+            return new PixelBGR(line.Slice(x * 3, 3));
         }
     }
 }
