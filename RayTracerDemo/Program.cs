@@ -35,7 +35,7 @@ namespace RayTracerDemo
                 (int)w.ActualHeight,
                 96,
                 96,
-                PixelFormats.Bgr32,
+                PixelFormats.Bgr24,
                 null);
 
             i.Source = writeableBitmap;

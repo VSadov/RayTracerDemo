@@ -17,32 +17,25 @@ namespace RayTracerDemo
             this.screenHeight = screenHeight;
         }
 
-        static void SetPixel(Span<byte> pixel, in Color c)
-        {
-            // pixel[0]  unused
-            pixel[1] = c.DrawingR;
-            pixel[2] = c.DrawingG;
-            pixel[3] = c.DrawingB;
-        }
-
         internal void Render(Scene scene, OwnedNativeBuffer frameBuffer, int stride)
         {
             void DrawLine(int y)
             {
-                Span<byte> scanLine = frameBuffer.AsSpan(y * stride, stride);
+                Span<byte> line = frameBuffer.AsSpan(y * stride, stride);
 
                 for (int x = 0; x < screenWidth; x++)
                 {
                     var ray = new Ray(scene.Camera.Pos, GetPoint(x, y, scene.Camera));
                     Color color = TraceRay(ray, scene, 0);
 
-                    SetPixel(scanLine.Slice(x * 4, 4), color);
+                    PixelBGR pixel = line.GetPixelAt(x);                  
+                    pixel.SetColor(color);
                 }
             }
 
-            //for (int y = 0; y < screenHeight; y++) DrawLine(y);
+            for (int y = 0; y < screenHeight; y++) DrawLine(y);
 
-            Parallel.For(0, screenHeight, (y) => DrawLine(y));
+            //Parallel.For(0, screenHeight, (y) => DrawLine(y);
         }
 
         private double TestRay(in Ray ray, Scene scene)
@@ -503,17 +496,32 @@ namespace RayTracerDemo
         public Camera Camera;
     }
 
-    //public struct RGB
-    //{
-    //    public readonly byte R;
-    //    public readonly byte G;
-    //    public readonly byte B;
+    ref struct PixelBGR
+    {
+        private readonly Span<byte> data;
 
-    //    public RGB(byte R, byte G, byte B)
-    //    {
-    //        this.R = R;
-    //        this.G = G;
-    //        this.B = B;
-    //    }
-    //}
+        internal PixelBGR(Span<byte> data)
+        {
+            this.data = data;
+        }
+
+        public void SetColor(in Color c)
+        {
+            data[0] = c.DrawingB;
+            data[1] = c.DrawingG;
+            data[2] = c.DrawingR;
+        }
+    }
+
+    static class PixelExtensions
+    {
+        public static PixelBGR GetPixelAt(this Span<byte> line, int x)
+        {
+            // slice a 3-byte chunk with pixel data
+            Span<byte> data = line.Slice(x * 3, 3);
+
+            // make a pixel
+            return new PixelBGR(data);
+        }
+    }
 }
